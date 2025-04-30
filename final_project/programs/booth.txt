@@ -1,0 +1,57 @@
+addi $1, $0, 10        // Multiplicand (A)
+addi $2, $0, 20        // Multiplier (y)
+addi $3, $0, 32       // Bit width
+move $10, $3          // Counter for loop (no_of_bits)
+addi $11, $3, -1      // no_of_bits - 1 for shift
+addi $4, $0, 0        // A = 0
+addi $5, $0, 0        // q(-1) = 0
+andi $7, $2, 1        // Last bit of y ($2)
+sub  $8, $7, $5       // Compare last bit of y and q(-1)
+bz   $8, 6            //  If $8 == 0, jump to shift
+bpl  $8, 3            //  # If $8 > 0, do subtraction
+add  $4, $4, $1       //    # Add multiplicand if case (01)
+br    2               //   Always jump to shift after operation
+sub  $4, $4, $1       //    # Subtract multiplicand (case 10)
+andi $6, $4, 1        //    # Get last bit of A
+srli  $4, $4, 1       //     # Logical shift-right A
+srli  $2, $2, 1       //     # Logical shift-right y
+sl  $6, $6, $11     //      # Add last A bit as first for y
+add  $2, $2, $6       // Merge into new y
+move $5, $7           // Update q(-1) = last bit of y
+subi $10, $10, 1      // Decrement counter
+bpl  $10, -14         // Continue loop if $10 > 0
+sli  $4, $4, 32      //  Shift A left to concatenate
+add  $4, $4, $2       // Merge into final result
+halt                  //  Infinite loop to halt
+
+
+###################
+
+
+# Initialize registers
+000001 00000 00001 0000000000001010   # addi $1, $0, #10       # Multiplicand (A)
+000001 00000 00010 0000000000010100   # addi $2, $0, #20       # Multiplier (y)
+000001 00000 00011 0000000000100000   # addi $3, $0, #32       # Bit width
+010001 00011 01010 0000000000000000   # move $10, $3           # Counter for loop (no_of_bits)
+000001 00011 01011 1111111111111111   # addi $11, $3, #-1      # no_of_bits - 1 for shift
+000001 00000 00100 0000000000000000   # addi $4, $0, #0        # A = 0
+000001 00000 00101 0000000000000000   # addi $5, $0, #0        # q(-1) = 0
+000100 00010 00111 0000000000000001   # andi $7, $2, #1        # Last bit of y ($2)
+000000 00111 00101 01000 000000 0 0010 # sub  $8, $7, $5       # Compare last bit of y and q(-1)
+110011 01000 0000000000000110         # bz $8, #6             # If $8 == 0, jump to shift
+110010 01000 0000000000000011         # bpl $8, #3            # If $8 > 0, do subtraction
+000000 00100 00001 00100 000000 0 0000 # add $4, $4, $1       # Add multiplicand if case (01)
+110100 0000000000000010               # br #2                 # Always jump to shift after operation
+000000 00100 00001 00100 000000 0 0010 # sub $4, $4, $1       # Subtract multiplicand (case 10)
+000100 00100 00110 0000000000000001   # andi $6, $4, #1       # Get last bit of A
+001010 00100 00100 0000000000000001   # srli $4, $4, #1       # Logical shift-right A
+001010 00010 00010 0000000000000001   # srli $2, $2, #1       # Logical shift-right y
+000000 00110 01011 00010 000000 1 0001 # sl $6, $6, $11       # Add last A bit as first for y
+000000 00010 00110 00010 000000 0 0101 # add $2, $2, $6       # Merge into new y
+010001 00111 00101 0000000000000000   # move $5, $7           # Update q(-1) = last bit of y
+000010 01010 01010 1111111111111111   # subi $10, $10, #1     # Decrement counter
+110010 01010 1111111111110010         # bpl $10, #-14         # Continue loop if $10 > 0
+000001 00000 00100 0010000000000000   # sli $4, $4, #32       # Shift A left to concatenate
+000000 00100 00010 00100 000000 0 0101 # add $4, $4, $2       # Merge into final result
+011110 00000000000000000000000000      # halt                  # Infinite loop to halt
+

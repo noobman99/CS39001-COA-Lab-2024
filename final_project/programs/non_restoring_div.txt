@@ -1,0 +1,108 @@
+ Register usage:
+# R2: Divisor
+# R3: Dividend/Quotient (Q)
+# R4: A register (remainder, initially 0)
+# R5: Counter (set to 32 for 32-bit)
+# R6: Temporary storage
+# R7: Sign bit check (1 or -1)
+# R8: Constant 1
+# R9: Temporary for comparisons
+
+# Initialize base address and load numbers
+LD R2, 1(R0)        # Load divisor
+LD R3, 0(R0)        # Load dividend into Q
+
+# Initialize other registers
+ADDI R4, R0, #0     # A = 0
+ADDI R5, R0, #32    # Counter = 32
+ADDI R7, R0, #1     # For sign checking
+ADDI R8, R0, #1     # Constant 1
+
+# First check if divisor is 0
+BZ R2, #-1          # If divisor = 0, halt program
+
+LOOP:
+
+BPL R4, #7
+
+# Left shift A,Q
+SL R4, R4, R8     # Shift A left by 1
+SL R3, R3, R8     # Shift Q left by 1
+
+# Get MSB of Q to put in LSB of A
+SRLI R6, R3, #31   # Get MSB of Q
+ADD R4, R4, R6    # Add to LSB of A
+
+# If A < 0, add divisor
+ADD R4, R4, R2     # A = A + M
+BR #6              # Skip subtraction
+
+# If A >= 0, subtract divisor
+
+# Left shift A,Q
+SL R4, R4, R8     # Shift A left by 1
+SL R3, R3, R8     # Shift Q left by 1
+
+# Get MSB of Q to put in LSB of A
+SRLI R6, R3, #31   # Get MSB of Q
+ADD R4, R4, R6    # Add to LSB of A
+SUB R4, R4, R2     # A = A - M
+
+# Set Q0 based on sign of A
+BMI R4, #2
+
+# Set LSB of Q to 1 if A >= 0
+ORI R3, R3, #1     # Set LSB of Q to 1
+
+# Decrement counter
+SUBI R5, R5, #1
+
+# Check if counter = 0
+BZ R5, #2          # Exit if counter = 0
+BR #-16            # Continue loop
+
+# After loop ends, check if final correction is needed
+BPL R4, #2
+
+# Final correction if A < 0
+ADD R4, R4, R2         # A = A + M
+
+HALT
+
+
+
+#####################################################################
+
+
+
+010010 00000 00010 0000000000000001     # LD R2, 1(R0)       -> Load divisor into R2
+010010 00000 00011 0000000000000000     # LD R3, 0(R0)       -> Load dividend into Q (R3)
+000001 00000 00100 0000000000000000     # ADDI R4, R0, #0   -> Counter = 31
+000001 00000 00101 0000000000011111     # ADDI R5, R0, #31   -> Counter = 31
+000001 00000 01000 0000000000000001     # ADDI R8, R0, #1    -> Constant 1
+110011 00010 00000 0000000000010111     # BZ R2, END         -> If divisor == 0, halt program
+000000 00011 01000 00011 000000 0 1001  # SL R3, R3, R8      -> Shift Q left by 1
+000000 00010 01000 00010 000000 0 1001  # SL R2, R2, R8      -> Shift Q left by 1
+110011 00100 00000 0000000000001000     # BZ R4, #8          -> Branch if R4 >= 0
+110010 00100 00000 0000000000000111     # BPL R4, #7         -> Branch if R4 >= 0
+000000 00100 01000 00100 000000 0 1001  # SL R4, R4, R8      -> Shift A left by 1
+000000 00011 01000 00011 000000 0 1001  # SL R3, R3, R8      -> Shift Q left by 1
+001010 00011 00110 0000000000011111     # SRLI R6, R3, #31   -> Get MSB of Q
+000000 00100 00110 00100 000000 0 0001  # ADD R4, R4, R6     -> Add to LSB of A
+000000 00100 00010 00100 000000 0 0001  # ADD R4, R4, R2     -> A = A + M
+110100 00000000000000000000000110       # BR #6              -> Skip subtraction
+000000 00100 01000 00100 000000 0 1001  # SL R4, R4, R8      -> Shift A left by 1
+000000 00011 01000 00011 000000 0 1001  # SL R3, R3, R8      -> Shift Q left by 1
+001010 00011 00110 0000000000011111     # SRLI R6, R3, #31   -> Get MSB of Q
+000000 00100 00110 00100 000000 0 0001  # ADD R4, R4, R6     -> Add to LSB of A
+000000 00100 00010 00100 000000 0 0010  # SUB R4, R4, R2     -> A = A - M
+110001 00100 00000 0000000000000010     # BMI R4, #2         -> Branch if A < 0
+000101 00011 00011 0000000000000001     # ORI R3, R3, #1     -> Set LSB of Q to 1
+000010 00101 00101 0000000000000001     # SUBI R5, R5, #1    -> Decrement counter
+110011 00101 00000 0000000000000010     # BZ R5, #2          -> Exit if counter = 0
+110100 11111111111111111111101111       # BR #-17            -> Continue loop
+110011 00100 00000 0000000000000011     # BZ R4, #8          -> Branch if R4 >= 0
+110010 00100 00000 0000000000000010     # BPL R4, #2         -> Branch if A >= 0
+000000 00100 00010 00100 000000 0 0001  # ADD R4, R4, R2     -> A = A + M
+000000 00100 01000 00100 000000 0 1010  # SRL R4, R4, R8      -> Shift A left by 1
+011110 00000000000000000000000000       # HALT
